@@ -1,0 +1,100 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+{% if user.is_authenticated and not listing.is_active %}
+    <div class="alert alert-warning" role="alert">Auction is closed.</div>
+    {% if listing.price.user == user %}
+        <div class="alert alert-success" role="alert">Congratulations! You are the Winner!</div>
+    {% endif %}
+{% endif %}
+<h2>Listing: {{ listing.title }}</h2>
+{% if user.is_authenticated %}
+    <div class="row" style="margin-bottom: 10px;">
+        <div class="col-md-6">
+            {% if user in listing.watchlist.all %}
+                <form action="{% url 'watchlist_remove' listing_id=listing.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">Remove From Watchlist</button>
+                </form>
+            {% else %}
+                <form action="{% url 'watchlist_add' listing_id=listing.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">Add To Watchlist</button>
+                </form>
+            {% endif %}
+        </div>
+        <div class="col-md-6 text-md-right">
+            {% if user == listing.user %}
+                <form action="{% url 'close' listing_id=listing.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Close Listing</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+<div class="card">
+    <img src="{{ listing.image.url }}" class="card-img-top" ,
+        style="display: block; width: 50%; height: 640px; margin: auto;">
+    <div class="card-body" style="margin-top: 10px;">
+        <h2 class="card-title">{{ listing.title}}</h2>
+        <p class="card-text">{{ listing.description }}</p>
+        <p class="card-text">Price: ${{ listing.price }}</p>
+        {% if user.is_authenticated  and listing.is_active %}
+            {% if bid_error_message %}
+                <div  class="alert alert-warning" role="alert">{{ bid_error_message }}</div>
+            {% endif %}
+            {% if listing.price.user == user %}
+                <div class="alert alert-info" role="alert">Your bid is the current bid</div>
+            {% endif %}
+            <form action="{% url 'bid' listing_id=listing.id %}" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input class="form-control" type="number" min="0" name="bid" placeholder="Bid" style="width: 500px;">
+                </div>
+                <button type="submit" class="btn btn-primary">Place Bid</button>
+            </form>
+        {% endif %}
+        <h3 style="margin-top: 40px;">Details:</h3>
+        <ul>
+            <li>Listed by: {{ listing.user }}</li>
+            {% if listing.category %}
+            <li>Category: <a href="{% url 'category' listing.category.id %}">{{ listing.category }}</a></li>
+            {% else %}
+            <li>Category: No Category Listed</li>
+            {% endif %}
+            <li>Created: {{ listing.created_on }}</li>
+        </ul>
+    </div>
+</div>
+<h3>Comments:</h3>
+{% for comment in comments %}
+<div class="card" style="width: 500px; margin-top: 5px;">
+    <div class="card-body">
+        {% if comment.user == listing.user %}
+        <h5 class="card-title">{{ comment.user }} Listing Owner</h5>
+        {% else %}
+        <h5 class="card-title">{{ comment.user }}</h5>
+        {% endif %}
+        <p class="card-text">{{ comment }}</p>
+        <p class="card-text"><small> commented {{ comment.created_on}}</small></p>
+    </div>
+</div>
+{% empty %}
+<h5>No Comments here yet</h5>
+{% endfor %}
+{% if user.is_authenticated and listing.is_active %}
+<form action="{% url 'comment' listing_id=listing.id %}" method="POST">
+    {% csrf_token %}
+    <div class="form-group">
+        <textarea class="form-control" rows="3" cols="10" name="comment" style="width: 500px; margin-top: 10px;"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Comment</button>
+</form>
+{% endif %}
+{% if not user.is_authenticated and listing.is_active %}
+<div style="margin-top: 25px;">
+    <h5>Please login to comment</h5>
+</div>
+{% endif %}
+{% endblock %}
